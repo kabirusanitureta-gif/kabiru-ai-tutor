@@ -306,13 +306,19 @@ def get_tutor_reply(message: str, preferred_language: str | None = None) -> tupl
     available; otherwise transparently falls back to the rule-based tutor.
     """
     language = preferred_language if preferred_language in ("en", "ha") else detect_language(message)
+    # 1. Try Gemini first
+    reply = _ask_gemini(message, language)
+    if reply:
+        return reply, language
 
+    # 2. Fall back to Ollama
     usable, model = _ollama_available()
     if usable and model:
         reply = _ask_ollama(message, language, model)
         if reply:
             return reply, language
 
+    # 3. Final fallback
     return _rule_based_reply(message, language), language
 
 
