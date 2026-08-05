@@ -145,7 +145,7 @@ def _ask_gemini(prompt: str, language: str) -> str | None:
         return None
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
         system_prompt = _build_system_prompt(language)
 
