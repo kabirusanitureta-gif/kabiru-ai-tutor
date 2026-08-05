@@ -13,10 +13,15 @@ never need to change):
     explain_error(error_text, language="en") -> str
     detect_language(text) -> "en" | "ha"
 """
+import os
 import httpx
+import google.generativeai as genai
 
 from app.core.config import settings
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY","")
 
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 # ---------------------------------------------------------------------------
 # Language detection (Hausa vs English)
 # ---------------------------------------------------------------------------
@@ -136,8 +141,26 @@ def _build_system_prompt(language: str) -> str:
         "Respond in English only."
     )
 
-
 def _ask_ollama(prompt: str, language: str, model: str) -> str | None:
+    if not GEMINI_API_KEY:
+        return None
+
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+
+        system_prompt = _build_system_prompt(language)
+
+        response = model.generate_content(
+            f"{system_prompt}\n\nStudent: {prompt}\nTutor:"
+        )
+
+        if response and hasattr(response, "text"):
+            return response.text.strip()
+
+    except Exception:
+        return None
+
+    return None
     system_prompt = _build_system_prompt(language)
     try:
         resp = httpx.post(
