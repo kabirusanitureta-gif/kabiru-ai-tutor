@@ -1,5 +1,5 @@
 """
-AI Tutor service.
+AI Tutor se7rvice.
 
 Tries a local Ollama model first (if OLLAMA_ENABLED and Ollama is reachable).
 The best installed model is auto-detected — no manual model name required.
@@ -140,8 +140,7 @@ def _build_system_prompt(language: str) -> str:
         "beginner or advancing toward expert level in any of these fields. "
         "Respond in English only."
     )
-
-def _ask_ollama(prompt: str, language: str, model: str) -> str | None:
+def _ask_gemini(prompt: str, language: str) -> str | None:
     if not GEMINI_API_KEY:
         return None
 
@@ -157,8 +156,14 @@ def _ask_ollama(prompt: str, language: str, model: str) -> str | None:
         if response and hasattr(response, "text"):
             return response.text.strip()
 
-    except Exception:
+    except Exception as e:
+        print("Gemini Error:", e)
         return None
+
+    return None
+
+
+def _ask_ollama(prompt: str, language: str, model: str) -> str | None:
 
     return None
     system_prompt = _build_system_prompt(language)
