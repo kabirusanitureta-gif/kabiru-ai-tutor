@@ -91,12 +91,18 @@ class Settings(BaseSettings):
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"),
+        env_file=os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            ".env",
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )
-
     @property
+
     def frontend_origins(self) -> list[str]:
         """FRONTEND_ORIGIN parsed into a clean list, supporting comma-separated values."""
         origins = [o.strip() for o in self.FRONTEND_ORIGIN.split(",") if o.strip()]
@@ -108,17 +114,22 @@ class Settings(BaseSettings):
         return origins
 
     @property
-       def ollama_preferred_models_list(self) -> list[str]:
-       @property
-       def gemini_fallback_models_list(self) -> list[str]:
-       """GEMINI_FALLBACK_MODELS parsed into a clean list."""
-    return [
-        m.strip()
-        for m in self.GEMINI_FALLBACK_MODELS.split(",")
-        if m.strip()
-    ]
+    def ollama_preferred_models_list(self) -> list[str]:
         """OLLAMA_PREFERRED_MODELS parsed into a clean, lowercase priority list."""
-        return [m.strip().lower() for m in self.OLLAMA_PREFERRED_MODELS.split(",") if m.strip()]
+        return [
+            m.strip().lower()
+            for m in self.OLLAMA_PREFERRED_MODELS.split(",")
+            if m.strip()
+         ]
+
+    @property
+    def gemini_fallback_models_list(self) -> list[str]:
+        """GEMINI_FALLBACK_MODELS parsed into a clean list."""
+        return [
+            m.strip()
+            for m in self.GEMINI_FALLBACK_MODELS.split(",")
+            if m.strip()
+         ]
 
     @property
     def is_production(self) -> bool:
@@ -149,7 +160,7 @@ def get_settings() -> Settings:
             "Set a unique SECRET_KEY environment variable in your hosting dashboard "
             "(Render/Railway/Vercel). Generate one with: "
             "python -c \"import secrets; print(secrets.token_hex(32))\""
-        )
+         )
     if s.is_production and s.using_sqlite:
         logger.warning(
             "PERSISTENCE WARNING: DATABASE_URL is still SQLite in production. "
