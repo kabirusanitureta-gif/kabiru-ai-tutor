@@ -137,6 +137,72 @@ def _build_system_prompt(language: str) -> str:
     )
 
 
+# ---------------------------------------------------------------------------
+# Provider 1: Google Gemini
+# ---------------------------------------------------------------------------
+_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+def _ask_gemini(prompt: str, language: str) -> str | None:
+    if not settings.GEMINI_API_KEY:
+        return None
+
+    system_prompt = _build_system_prompt(language)
+
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+
+    models = [
+        settings.GEMINI_MODEL,
+        *settings.gemini_fallback_models_list,
+    ]
+
+    tried = set()
+
+    for model in models:
+        model = model.strip()
+        if not model or model in tried:
+            continue
+        tried.add(model)
+
+        try:
+            response = httpx.post(
+                f"{_GEMINI_API_BASE}/{model}:generateContent",
+                params={"key": settings.GEMINI_API_KEY},
+                json=payload,
+                timeout=30.0,
+            )
+
+            if response.status_code != 200:
+                continue
+
+            data = response.json()
+            candidates = data.get("candidates", [])
+
+            if not candidates:
+                continue
+
+            parts = candidates[0].get("content", {}).get("parts", [])
+
+            text = "".join(
+                p.get("text", "")
+                for p in parts
+            ).strip()
+
+            if text:
+                return text
+
+        except Exception:
+            pass
+
+    return None
 def _ask_ollama(prompt: str, language: str, model: str) -> str | None:
     system_prompt = _build_system_prompt(language)
     try:
@@ -275,21 +341,40 @@ def _rule_based_reply(message: str, language: str) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def get_tutor_reply(message: str, preferred_language: str | None = None) -> tuple[str, str]:
+
+
+def get_tutor_reply(
+    message: str,
+    preferred_language: str | None = None,
+) -> tuple[str, str]:
     """
     Returns (reply, language_used).
-    Auto-detects Hausa vs English unless preferred_language is explicitly set.
-    Automatically uses the best installed local Ollama model if one is
-    available; otherwise transparently falls back to the rule-based tutor.
-    """
-    language = preferred_language if preferred_language in ("en", "ha") else detect_language(message)
 
+    Provider priority:
+      1. Gemini
+      2. Ollama
+      3. Rule-based tutor
+    """
+    language = (
+        preferred_language
+        if preferred_language in ("en", "ha")
+        else detect_language(message)
+    )
+
+    # 1. Gemini
+    if settings.GEMINI_API_KEY:
+        reply = _ask_gemini(message, language)
+        if reply:
+            return reply, language
+
+    # 2. Ollama
     usable, model = _ollama_available()
     if usable and model:
         reply = _ask_ollama(message, language, model)
         if reply:
             return reply, language
 
+    # 3. Rule-based fallback
     return _rule_based_reply(message, language), language
 
 

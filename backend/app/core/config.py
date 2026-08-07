@@ -1,3 +1,4 @@
+
 """
 Application configuration, loaded from environment variables / .env file.
 """
@@ -65,6 +66,13 @@ class Settings(BaseSettings):
     # survives redeploys — see docs/PRODUCTION_FIXES.md for why this matters.
     DATABASE_URL: str = "sqlite:///./kabiru_tutor.db"
 
+    # --- Google Gemini ---
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_FALLBACK_MODELS: str = "gemini-2.5-flash-lite,gemini-2.5-pro"
+
+    # Conversation memory
+    AI_MEMORY_LIMIT: int = 12
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     # Explicit override: if set and actually installed in Ollama, this exact
     # model is used regardless of the priority list below. Leave as the
@@ -100,7 +108,15 @@ class Settings(BaseSettings):
         return origins
 
     @property
-    def ollama_preferred_models_list(self) -> list[str]:
+       def ollama_preferred_models_list(self) -> list[str]:
+       @property
+       def gemini_fallback_models_list(self) -> list[str]:
+       """GEMINI_FALLBACK_MODELS parsed into a clean list."""
+    return [
+        m.strip()
+        for m in self.GEMINI_FALLBACK_MODELS.split(",")
+        if m.strip()
+    ]
         """OLLAMA_PREFERRED_MODELS parsed into a clean, lowercase priority list."""
         return [m.strip().lower() for m in self.OLLAMA_PREFERRED_MODELS.split(",") if m.strip()]
 

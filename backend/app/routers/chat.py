@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.models import ChatMessage, User
@@ -13,7 +14,24 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 @router.post("", response_model=ChatOut)
 def chat(payload: ChatIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    reply, language = get_tutor_reply(payload.message, current_user.preferred_language)
+    recent_messages = (
+    db.query(ChatMessage)
+    .filter(ChatMessage.user_id == current_user.id)
+    .order_by(ChatMessage.created_at.desc())
+    .limit(settings.AI_MEMORY_LIMIT)
+    .all()
+)
+
+    history = [
+    {"role": m.role, "content": m.content}
+    for m in reversed(recent_messages)
+]
+
+    reply, language = get_tutor_reply(
+    payload.message,
+    current_user.preferred_language,
+    history=history,
+)
 
     db.add(ChatMessage(user_id=current_user.id, role="user", content=payload.message, language=language))
     db.add(ChatMessage(user_id=current_user.id, role="assistant", content=reply, language=language))
