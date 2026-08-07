@@ -1,25 +1,3 @@
-# Kabiru AI Tutor — Render Blueprint
-#
-# This file lets Render configure the ENTIRE stack automatically — backend,
-# frontend, and a persistent Postgres database — with zero manual dashboard
-# field-filling. This eliminates the class of bugs caused by hand-typing
-# Root Directory / Build Command / Start Command incorrectly.
-#
-# IMPORTANT: The backend service intentionally does NOT set a rootDir.
-# All backend paths below are anchored to the REPO ROOT instead, so there is
-# no "../requirements.txt"-style relative path that can break depending on
-# how Root Directory is interpreted. This fixes:
-#   ERROR: Could not open requirements file: [Errno 2] No such file or
-#   directory: '../requirements.txt'
-# which occurs when rootDir and a relative buildCommand disagree about the
-# working directory Render actually builds from.
-#
-# To use: go to https://dashboard.render.com/blueprints, click "New Blueprint
-# Instance", and point it at this repository. Render reads this file and
-# creates everything below automatically.
-#
-# Docs: https://render.com/docs/blueprint-spec
-
 databases:
   - name: kabiru-ai-tutor-db
     plan: free
@@ -27,49 +5,47 @@ databases:
     user: kabiru_tutor
 
 services:
-  # ------------------------- Backend (FastAPI) -------------------------
   - type: web
     name: kabiru-ai-tutor-backend
     runtime: python
     plan: free
-    # No rootDir set -> Render builds from the repository root by default.
-    # requirements.txt lives at the repo root, so this path always resolves
-    # correctly regardless of any Root Directory setting a person might
-    # later add manually in the dashboard.
-    buildCommand: "pip install -r requirements.txt"
-    # cd into backend/ only for the START step, where app.main:app and the
-    # seed script actually live. Anchoring both build and start to the repo
-    # root (rather than mixing a rootDir with relative "../" paths) removes
-    # the entire class of path-confusion bugs seen during earlier deploys.
-    startCommand: "cd backend && python -m app.seed.run_seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && python -m app.seed.run_seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
     envVars:
       - key: ENV
         value: production
+
       - key: SECRET_KEY
-        generateValue: true          # Render generates a strong random secret automatically
+        generateValue: true
+
       - key: DATABASE_URL
         fromDatabase:
           name: kabiru-ai-tutor-db
-          property: connectionString  # persistent Postgres — survives every redeploy
+          property: connectionString
+
       - key: OLLAMA_ENABLED
-        value: "false"                # no local Ollama on Render; rule-based tutor fallback is used
+        value: "false"
+
+      - key: GEMINI_API_KEY
+        sync: false
+
       - key: FRONTEND_ORIGIN
-        value: "https://kabiru-ai-tutor-frontend.onrender.com"
+        value: https://kabiru-ai-tutor-frontend.onrender.com
+
     healthCheckPath: /api/health
 
-  # ------------------------- Frontend (React/Vite) -------------------------
-  - type: web
+  - type: static
     name: kabiru-ai-tutor-frontend
-    runtime: static
     rootDir: frontend
-    buildCommand: "npm ci && npm run build"
-    staticPublishPath: ./dist
+    buildCommand: npm ci && npm run build
+    staticPublishPath: frontend/dist
+
     envVars:
       - key: VITE_API_URL
-        value: "https://kabiru-ai-tutor-backend.onrender.com"
+        value: https://kabiru-ai-tutor-backend.onrender.com
+
     routes:
-      # Single-page app: any unmatched path serves index.html so React Router
-      # handles client-side routing (fixes blank/404 pages on refresh).
       - type: rewrite
         source: /*
         destination: /index.html
