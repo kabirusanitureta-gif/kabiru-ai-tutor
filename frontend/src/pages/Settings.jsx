@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { startRegistration } from "@simplewebauthn/browser";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAppSettings } from "../context/AppSettingsContext.jsx";
-import { updateMe, searchLessons, uploadMyPhoto, deleteMyPhoto, avatarSrc } from "../api/endpoints.js";
+import { updateMe, searchLessons, uploadMyPhoto, deleteMyPhoto, avatarSrc, webauthnRegisterOptions, webauthnRegisterVerify, getWebAuthnCredentials, deleteWebAuthnCredential } from "../api/endpoints.js";
 
 export default function Settings() {
   const { user, updateLocalUser } = useAuth();
@@ -13,6 +14,37 @@ export default function Settings() {
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [passkeys, setPasskeys] = useState([]);
+  const [passkeyMessage, setPasskeyMessage] = useState("");
+  useEffect(() => {
+    getWebAuthnCredentials()
+      .then((res) => setPasskeys(res.data || []))
+      .catch(() => setPasskeys([]));
+  }, []);
+
+  const handleAddPasskey = async () => {
+    setPasskeyMessage("");
+
+    try {
+      const optionsRes = await webauthnRegisterOptions();
+      const credential = await startRegistration({
+        optionsJSON: optionsRes.data,
+      });
+
+      const verifyRes = await webauthnRegisterVerify(credential);
+
+      setPasskeys((current) => [...current, verifyRes.data]);
+      setPasskeyMessage("Passkey added successfully.");
+    } catch (err) {
+      setPasskeyMessage(
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Could not add passkey."
+      );
+    }
+  };
+
+
 
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
@@ -147,6 +179,67 @@ export default function Settings() {
           </button>
           {saveMessage && <span className="ml-3 text-sm text-brand-600">{saveMessage}</span>}
         </form>
+      </div>
+
+      {/* Passkeys */}
+      <div className="card mt-6">
+        <h2 className="font-bold mb-2">Passkeys</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Sign in securely with Face ID, fingerprint, device PIN, or another passkey.
+        </p>
+
+        <button
+          onClick={handleAddPasskey}
+          className="btn-primary"
+        >
+          🔐 Add Passkey
+        </button>
+
+        {passkeyMessage && (
+          <div className="text-sm text-brand-600 mt-3">
+            {passkeyMessage}
+          </div>
+        )}
+
+        {passkeys.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {passkeys.map((passkey) => (
+              <div
+                key={passkey.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3"
+              >
+                <div>
+                  <div className="font-medium">
+                    {passkey.device_name || "Passkey"}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Added passkey
+                  </div>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteWebAuthnCredential(passkey.id);
+                      setPasskeys((current) =>
+                        current.filter((item) => item.id !== passkey.id)
+                      );
+                      setPasskeyMessage("Passkey removed.");
+                    } catch (err) {
+                      setPasskeyMessage(
+                        err?.response?.data?.detail ||
+                        "Could not remove passkey."
+                      );
+                    }
+                  }}
+                  className="text-sm text-red-500 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Preferences */}

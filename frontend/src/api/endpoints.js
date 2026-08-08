@@ -62,3 +62,24 @@ export const getChatHistory = () => api.get(`/api/chat/history`);
 export const explainError = (message) => api.post(`/api/chat/explain-error`, { message });
 export const checkCode = (code, language = "python", task_description = "") =>
   api.post(`/api/chat/check-code`, { code, language, task_description });
+
+export const webauthnRegisterOptions = () =>
+  api.post("/api/auth/webauthn/register/options");
+
+export const webauthnRegisterVerify = (payload) =>
+  api.post("/api/auth/webauthn/register/verify", payload);
+
+export const webauthnLoginOptions = (payload) =>
+  api.post("/api/auth/webauthn/login/options", payload);
+
+export const webauthnLoginVerify = (payload) =>
+  api.post("/api/auth/webauthn/login/verify", payload);
+
+export const getWebAuthnCredentials = () =>
+  api.get("/api/auth/webauthn/credentials");
+
+export const renameWebAuthnCredential = (credentialId, payload) =>
+  api.patch(`/api/auth/webauthn/credentials/${credentialId}`, payload);
+
+export const deleteWebAuthnCredential = (credentialId) =>
+  api.delete(`/api/auth/webauthn/credentials/${credentialId}`);

@@ -54,6 +54,11 @@ class User(Base):
     streak = relationship("StudyStreak", back_populates="user", uselist=False, cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+    webauthn_credentials = relationship(
+        "WebAuthnCredential",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def avatar_url(self) -> str | None:
@@ -61,6 +66,20 @@ class User(Base):
         if not self.avatar_path:
             return None
         return f"/uploads/avatars/{self.avatar_path}"
+
+
+class WebAuthnCredential(Base):
+    __tablename__ = "webauthn_credentials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    credential_id = Column(String(512), unique=True, nullable=False, index=True)
+    public_key = Column(Text, nullable=False)
+    sign_count = Column(Integer, nullable=False, default=0)
+    device_name = Column(String(120), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="webauthn_credentials")
 
 
 class Course(Base):
