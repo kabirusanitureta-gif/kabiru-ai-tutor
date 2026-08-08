@@ -1,0 +1,38 @@
+# --- Secrets: NEVER commit these ---
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.pem
+*.key
+secrets.json
+
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- Uploaded user content (avatars etc.) — never belongs in git ---
+backend/uploads/
+uploads/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log

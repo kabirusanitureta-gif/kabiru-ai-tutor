@@ -1,0 +1,27 @@
+# Kabiru AI Tutor — Frontend Dockerfile (multi-stage build)
+
+# --- Stage 1: build the static React app ---
+FROM node:20-slim AS build
+
+WORKDIR /app
+
+COPY frontend/package.json ./
+RUN npm install
+
+COPY frontend/ ./
+# The backend's public URL is baked in at build time; override with --build-arg if needed.
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=$VITE_API_URL
+RUN npm run build
+
+# --- Stage 2: serve the built static files ---
+FROM node:20-slim
+
+WORKDIR /app
+RUN npm install -g serve
+
+COPY --from=build /app/dist ./dist
+
+EXPOSE 5173
+
+CMD ["serve", "-s", "dist", "-l", "5173"]

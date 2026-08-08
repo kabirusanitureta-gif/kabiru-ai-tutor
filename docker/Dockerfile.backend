@@ -1,0 +1,27 @@
+# Kabiru AI Tutor — Backend Dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# System dependencies needed for building some Python packages (e.g. bcrypt, reportlab).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies first for better Docker layer caching.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the backend application code.
+COPY backend/ ./backend/
+COPY .env.example ./.env.example
+
+WORKDIR /app/backend
+
+# Directory for generated certificate PDFs (mounted as a volume in docker-compose).
+RUN mkdir -p /app/certificates
+
+EXPOSE 8000
+
+# Seed the database on container start (idempotent), then launch the API server.
+CMD ["sh", "-c", "python -m app.seed.run_seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
