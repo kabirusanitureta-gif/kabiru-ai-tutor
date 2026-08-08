@@ -57,11 +57,11 @@ class Settings(BaseSettings):
     # (safe no-op default so this never breaks deploys that haven't set up
     # email yet). Set all SMTP_* vars to actually deliver reset codes.
     SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
+    SMTP_PORT: int = 465
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "no-reply@kabiru-ai-tutor.local"
-    SMTP_USE_TLS: bool = True
+    SMTP_USE_TLS: bool = False
 
     # SQLite by default for local/offline use (Termux/Pydroid/Linux/Windows).
     # In production (Render/Railway), set this to a Postgres URL so data

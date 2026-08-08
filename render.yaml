@@ -64,7 +64,7 @@ services:
       - key: SMTP_HOST
         value: "smtp.gmail.com"
       - key: SMTP_PORT
-        value: "587"
+        value: "465"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASSWORD
@@ -72,7 +72,7 @@ services:
       - key: SMTP_FROM
         sync: false
       - key: SMTP_USE_TLS
-        value: "true"
+        value: "false"
     healthCheckPath: /api/health
 
   # ------------------------- Frontend (React/Vite) -------------------------
