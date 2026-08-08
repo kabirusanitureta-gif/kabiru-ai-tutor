@@ -32,6 +32,12 @@ services:
 
       - key: FRONTEND_ORIGIN
         value: https://kabiru-ai-tutor-frontend.onrender.com
+      - key: WEBAUTHN_RP_ID
+        value: kabiru-ai-tutor-frontend.onrender.com
+      - key: WEBAUTHN_RP_NAME
+        value: Kabiru AI Tutor
+      - key: WEBAUTHN_ORIGIN
+        value: https://kabiru-ai-tutor-frontend.onrender.com
 
     healthCheckPath: /api/health
 
