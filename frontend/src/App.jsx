@@ -33,7 +33,7 @@ export default function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Layout><Dashboard /></Layout>
           </ProtectedRoute>
         }
       />
@@ -41,7 +41,7 @@ export default function App() {
         path="/courses"
         element={
           <ProtectedRoute>
-            <Courses />
+            <Layout><Courses /></Layout>
           </ProtectedRoute>
         }
       />
@@ -81,7 +81,7 @@ export default function App() {
         path="/progress"
         element={
           <ProtectedRoute>
-            <Progress />
+            <Layout><Progress /></Layout>
           </ProtectedRoute>
         }
       />
@@ -89,7 +89,7 @@ export default function App() {
         path="/certificates"
         element={
           <ProtectedRoute>
-            <Certificates />
+            <Layout><Certificates /></Layout>
           </ProtectedRoute>
         }
       />
@@ -97,7 +97,7 @@ export default function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <Settings />
+            <Layout><Settings /></Layout>
           </ProtectedRoute>
         }
       />

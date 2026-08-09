@@ -1,123 +1,103 @@
-import React, { useState } from "react";
+import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
-import { useAppSettings } from "../context/AppSettingsContext.jsx";
+import { Sun, Moon } from "lucide-react";
+import { useAppSettings, SUPPORTED_LANGUAGES } from "../context/AppSettingsContext";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", key: "dashboard", icon: "🏠" },
-  { to: "/courses", key: "courses", icon: "📚" },
-  { to: "/chat", key: "aiChat", icon: "💬" },
-  { to: "/progress", key: "progress", icon: "📈" },
-  { to: "/certificates", key: "certificates", icon: "🎓" },
-  { to: "/notes", key: "notes", icon: "📝" },
+  { to: "/dashboard", key: "dashboard" },
+  { to: "/courses", key: "courses" },
+  { to: "/ai-chat", key: "aiChat" },
+  { to: "/progress", key: "progress" },
+  { to: "/certificates", key: "certificates" },
+  { to: "/notes", key: "notes" },
+  { to: "/settings", key: "settings" },
 ];
 
 export default function Layout({ children }) {
-  const { user, logout } = useAuth();
-  const { theme, toggleTheme, language, toggleLanguage, t } = useAppSettings();
+  const { t, language, setLanguage, theme, toggleTheme } = useAppSettings();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem("kabiru_token");
     navigate("/login");
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
-      {/* Sidebar (desktop) / Top bar (mobile) */}
-      <aside className="md:w-64 md:min-h-screen bg-white dark:bg-slate-800 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 flex md:flex-col">
-        <div className="flex items-center justify-between w-full p-4 md:border-b border-slate-200 dark:border-slate-700">
-          <NavLink to="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-            <span className="text-brand-600">🎓</span>
-            <span>{t("appName")}</span>
-          </NavLink>
-          <button
-            className="md:hidden text-2xl"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Toggle menu"
-          >
-            ☰
-          </button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 shadow px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <span className="font-bold text-gray-900 dark:text-white">
+            {t("appName")}
+          </span>
+          <nav className="hidden md:flex items-center gap-3">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `text-sm px-2 py-1 rounded ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`
+                }
+              >
+                {t(item.key)}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        <nav
-          className={`${menuOpen ? "flex" : "hidden"} md:flex flex-col gap-1 p-3 md:flex-1 absolute md:static top-16 left-0 right-0 bg-white dark:bg-slate-800 z-20 md:z-auto border-b md:border-b-0 border-slate-200 dark:border-slate-700`}
-        >
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-brand-600 text-white"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                }`
-              }
-            >
-              <span>{item.icon}</span>
-              <span>{t(item.key)}</span>
-            </NavLink>
-          ))}
+        <div className="flex items-center gap-3">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="text-sm border rounded px-2 py-1 bg-transparent dark:text-white"
+          >
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
 
-          <div className="mt-2 border-t border-slate-200 dark:border-slate-700 pt-2 flex flex-col gap-1">
-            <NavLink
-              to="/settings"
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-brand-600 text-white"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                }`
-              }
-            >
-              <span>⚙️</span>
-              <span>{t("settings")}</span>
-            </NavLink>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+            aria-label={theme === "dark" ? t("lightMode") : t("darkMode")}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
 
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
-            >
-              <span>{theme === "dark" ? "☀️" : "🌙"}</span>
-              <span>{theme === "dark" ? t("lightMode") : t("darkMode")}</span>
-            </button>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-red-600 dark:text-red-400 hover:underline"
+          >
+            {t("logout")}
+          </button>
+        </div>
+      </header>
 
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
-            >
-              <span>🌐</span>
-              <span>{language === "en" ? "Hausa" : "English"}</span>
-            </button>
+      {/* Mobile nav */}
+      <nav className="md:hidden flex overflow-x-auto gap-2 px-4 py-2 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `text-xs whitespace-nowrap px-2 py-1 rounded ${
+                isActive
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`
+            }
+          >
+            {t(item.key)}
+          </NavLink>
+        ))}
+      </nav>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-left"
-            >
-              <span>🚪</span>
-              <span>{t("logout")}</span>
-            </button>
-          </div>
-        </nav>
-
-        {user && (
-          <div className="hidden md:flex items-center gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
-            <div className="h-9 w-9 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold">
-              {user.full_name?.[0]?.toUpperCase() || "K"}
-            </div>
-            <div className="text-sm">
-              <div className="font-semibold leading-tight">{user.full_name}</div>
-              <div className="text-slate-500 dark:text-slate-400 text-xs leading-tight">{user.email}</div>
-            </div>
-          </div>
-        )}
-      </aside>
-
-      <main className="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto">{children}</main>
+      <main>{children}</main>
     </div>
   );
 }

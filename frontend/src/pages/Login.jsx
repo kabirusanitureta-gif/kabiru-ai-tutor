@@ -1,93 +1,121 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
-import { useAppSettings } from "../context/AppSettingsContext.jsx";
+import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { useAppSettings, SUPPORTED_LANGUAGES } from "../context/AppSettingsContext";
 
 export default function Login() {
-  const { login } = useAuth();
-  const { t } = useAppSettings();
+  const { t, language, setLanguage } = useAppSettings();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Login failed");
+      }
+      if (data?.token) {
+        localStorage.setItem("kabiru_token", data.token);
+      }
       navigate("/dashboard");
     } catch (err) {
-      const detail = err?.response?.data?.detail || "Login failed. Please check your credentials.";
-      setError(detail);
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <Link to="/" className="inline-flex items-center gap-2 font-bold text-xl">
-            <span className="text-brand-600">🎓</span>
-            <span>{t("appName")}</span>
-          </Link>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            {t("welcomeBack")}
+          </h1>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="text-sm border rounded px-2 py-1 bg-transparent dark:text-white"
+          >
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="card">
-          <h1 className="text-xl font-bold mb-1">{t("welcomeBack")}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Log in to continue your learning journey.</p>
+        {error && (
+          <div className="mb-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded p-2">
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="mb-4 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">
+              {t("email")}
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full border rounded px-3 py-2 bg-transparent dark:text-white"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">{t("email")}</label>
+          <div>
+            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">
+              {t("password")}
+            </label>
+            <div className="relative">
               <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium">{t("password")}</label>
-                <Link to="/forgot-password" className="text-xs text-brand-600 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <input
-                type="password"
-                required
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-field"
-                placeholder="••••••••"
+                required
+                className="w-full border rounded px-3 py-2 pr-10 bg-transparent dark:text-white"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? "..." : t("login")}
-            </button>
-          </form>
+          </div>
 
-          <p className="mt-5 text-sm text-center text-slate-600 dark:text-slate-400">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-brand-600 font-semibold hover:underline">
-              {t("register")}
-            </Link>
-          </p>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded py-2 font-medium"
+          >
+            {loading ? "..." : t("login")}
+          </button>
+        </form>
+
+        <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-300">
+          {t("createAccount")}{" "}
+          <Link to="/register" className="text-blue-600 dark:text-blue-400">
+            {t("register")}
+          </Link>
+        </p>
       </div>
     </div>
   );
