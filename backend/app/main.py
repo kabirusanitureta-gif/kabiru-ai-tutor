@@ -91,4 +91,5 @@ def health():
         # Non-sensitive diagnostic flag: helps confirm at a glance whether this
         # deployment is at risk of losing data on redeploy (see docs/PRODUCTION_FIXES.md).
         "database_persistent": not settings.using_sqlite,
+        "email_configured": settings.email_configured,
     }
