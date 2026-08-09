@@ -24,6 +24,9 @@ export const forgotPassword = (email) => api.post("/api/auth/forgot-password", {
 export const resetPassword = (email, code, new_password) =>
   api.post("/api/auth/reset-password", { email, code, new_password });
 
+export const resendResetCode = (email) =>
+  api.post("/api/auth/resend-reset-code", { email });
+
 // ---- Courses ----
 export const getCourses = () => api.get("/api/courses");
 export const getCourse = (slug) => api.get(`/api/courses/${slug}`);

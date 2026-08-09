@@ -176,6 +176,32 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Sessio
     return {"message": "If that email is registered, a reset code has been sent."}
 
 
+@router.post("/resend-reset-code", status_code=status.HTTP_202_ACCEPTED)
+def resend_reset_code(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    """
+    Send a fresh password-reset code. Always returns a generic response
+    so registered emails cannot be enumerated.
+    """
+    check_rate_limit(request, payload.email, scope="forgot-password")
+    record_attempt(request, payload.email, scope="forgot-password")
+
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user:
+        code = generate_reset_code()
+        reset_row = PasswordResetToken(
+            user_id=user.id,
+            token_hash=hash_token(code),
+            expires_at=datetime.utcnow() + timedelta(
+                minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+            ),
+        )
+        db.add(reset_row)
+        db.commit()
+        send_password_reset_email(user.email, user.full_name, code)
+
+    return {"message": "If that email is registered, a new reset code has been sent."}
+
+
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
     check_rate_limit(request, payload.email, scope="reset-password")
