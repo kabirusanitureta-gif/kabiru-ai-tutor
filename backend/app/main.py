@@ -93,3 +93,39 @@ def health():
         "database_persistent": not settings.using_sqlite,
         "email_configured": settings.email_configured,
     }
+
+
+# ---------------------------------------------------------------------------
+# TEMPORARY diagnostic endpoint — DELETE after SMTP is confirmed working.
+# Guarded by DEBUG_SMTP_TOKEN env var (set any random string in Render).
+@app.get("/api/debug/smtp-check")
+def debug_smtp_check(token: str = ""):
+    debug_token = os.environ.get("DEBUG_SMTP_TOKEN", "")
+    if not debug_token or token != debug_token:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Not found")
+
+    import smtplib
+
+    result = {
+        "smtp_host": settings.SMTP_HOST,
+        "smtp_port": settings.SMTP_PORT,
+        "smtp_user": settings.SMTP_USER,
+        "smtp_use_tls": settings.SMTP_USE_TLS,
+        "smtp_password_set": bool(settings.SMTP_PASSWORD),
+    }
+    try:
+        server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+        result["step_connect"] = "OK"
+        if settings.SMTP_USE_TLS:
+            server.starttls()
+            result["step_starttls"] = "OK"
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        result["step_login"] = "OK"
+        server.quit()
+        result["overall"] = "SUCCESS — SMTP connection and login both work."
+    except Exception as e:
+        result["overall"] = "FAILED"
+        result["error_type"] = type(e).__name__
+        result["error_message"] = str(e)
+    return result
