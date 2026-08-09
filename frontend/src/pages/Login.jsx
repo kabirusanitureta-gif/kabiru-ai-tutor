@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import { Eye, EyeOff } from "lucide-react";
 import { useAppSettings, SUPPORTED_LANGUAGES } from "../context/AppSettingsContext";
 
 export default function Login() {
   const { t, language, setLanguage } = useAppSettings();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -18,21 +20,14 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || "Login failed");
-      }
-      if (data?.token) {
-        localStorage.setItem("kabiru_token", data.token);
-      }
+      await login(email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      const detail =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Login failed. Please try again.";
+      setError(detail);
     } finally {
       setLoading(false);
     }
