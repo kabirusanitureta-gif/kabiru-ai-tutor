@@ -7,6 +7,17 @@ import logging
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Explicit root-logger setup: without this, Python's default root logger
+# level is WARNING, so every logger.info(...) call anywhere in the app
+# (email send confirmations, etc.) is silently dropped and never reaches
+# Render's log viewer — making real production behavior undebuggable from
+# the dashboard. This must run before any other module's logger.* calls,
+# so it lives at the very top of the first core module that's imported.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
 logger = logging.getLogger("kabiru.config")
 
 INSECURE_DEFAULT_SECRET = "insecure-dev-key-change-me"
