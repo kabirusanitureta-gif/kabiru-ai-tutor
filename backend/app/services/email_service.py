@@ -10,11 +10,41 @@ because email isn't set up yet in this environment.
 """
 import logging
 import smtplib
+import socket
+from contextlib import contextmanager
 from email.message import EmailMessage
 
 from app.core.config import settings
 
 logger = logging.getLogger("kabiru.email")
+
+
+@contextmanager
+def _force_ipv4_dns():
+    """
+    Some hosts (Render's free tier among them) have no outbound IPv6 route,
+    but smtp.gmail.com resolves to both an IPv6 (AAAA) and IPv4 (A) address.
+    getaddrinfo() can return the IPv6 result first, and smtplib then tries
+    to connect to an address the container can't reach at all — failing
+    immediately with OSError: [Errno 101] Network is unreachable, before
+    SMTP/TLS/auth ever run.
+
+    This temporarily filters getaddrinfo to IPv4-only for the duration of
+    the SMTP connection. The hostname itself is still what's passed to
+    smtplib and used for the STARTTLS certificate check — only the
+    underlying IP resolution changes. Restored via try/finally so nothing
+    else in the process is affected.
+    """
+    original_getaddrinfo = socket.getaddrinfo
+
+    def ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+    socket.getaddrinfo = ipv4_only_getaddrinfo
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
 
 
 def _send(to_email: str, subject: str, body: str, *, log_label: str) -> None:
@@ -39,11 +69,12 @@ def _send(to_email: str, subject: str, body: str, *, log_label: str) -> None:
     msg.set_content(body)
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-            if settings.SMTP_USE_TLS:
-                server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.send_message(msg)
+        with _force_ipv4_dns():
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                if settings.SMTP_USE_TLS:
+                    server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
     except Exception:
         logger.exception("FAILED to send %s to %s", log_label, to_email)
         return
